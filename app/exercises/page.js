@@ -32,6 +32,7 @@ function CreateExercise({ user }) {
   const [editName, setEditName] = useState("");
   const [busyId, setBusyId] = useState("");
   const [rowError, setRowError] = useState({}); // category or exercise id -> message
+  const [openMap, setOpenMap] = useState({}); // category id -> true when its exercises are shown
 
   useEffect(() => {
     load();
@@ -60,6 +61,7 @@ function CreateExercise({ user }) {
   }, [categories]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const exercisesOf = (name) => exercises.filter((e) => e.category_name === name);
+  const toggle = (id) => setOpenMap((m) => ({ ...m, [id]: !m[id] }));
 
   // ---------- create category ----------
   async function addCategory() {
@@ -104,6 +106,7 @@ function CreateExercise({ user }) {
     }
     setExName("");
     setExMessage(`Added ${clean} to ${category}.`);
+    if (cat) setOpenMap((m) => ({ ...m, [cat.id]: true })); // show it where it was added
     load();
   }
 
@@ -256,10 +259,15 @@ function CreateExercise({ user }) {
         {categories.length === 0 && !loadError && (
           <div className="empty">No categories yet — add one in the first box (for example Leg Day, Push Day, Pull Day).</div>
         )}
+        {categories.length > 0 && (
+          <div className="notice" style={{ marginTop: 0, marginBottom: 10 }}>Click a category to see its exercises.</div>
+        )}
         {categories.map((c) => {
           const editing = editingId === c.id;
           const working = busyId === c.id;
           const list = exercisesOf(c.name);
+          const open = Boolean(openMap[c.id]);
+          const listId = `ex-list-${c.id}`;
           return (
             <div className="cat-block" key={c.id}>
               <div className="cat-row">
@@ -286,7 +294,18 @@ function CreateExercise({ user }) {
                   </>
                 ) : (
                   <>
-                    <span className="cat-row-name">{c.name}</span>
+                    <button
+                      type="button"
+                      className="cat-name-toggle"
+                      aria-expanded={open}
+                      aria-controls={listId}
+                      onClick={() => toggle(c.id)}
+                    >
+                      <svg className={"chev" + (open ? " open" : "")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M9 5l7 7-7 7" />
+                      </svg>
+                      <span className="cat-row-name">{c.name}</span>
+                    </button>
                     <span className="badge">{list.length} {list.length === 1 ? "exercise" : "exercises"}</span>
                     <button className="small" onClick={() => startEdit(c)} disabled={working} aria-label={`Edit ${c.name}`}>Edit</button>
                     <button className="danger small" onClick={() => deleteCategory(c)} disabled={working} aria-label={`Delete ${c.name}`}>Delete</button>
@@ -294,7 +313,8 @@ function CreateExercise({ user }) {
                 )}
                 {rowError[c.id] && <div className="error cat-row-error">{rowError[c.id]}</div>}
               </div>
-              <div className="ex-list">
+              {open && (
+              <div className="ex-list" id={listId}>
                 {list.length === 0 ? (
                   <div className="ex-empty">No exercises yet.</div>
                 ) : (
@@ -309,6 +329,7 @@ function CreateExercise({ user }) {
                   ))
                 )}
               </div>
+              )}
             </div>
           );
         })}

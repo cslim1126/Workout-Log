@@ -263,3 +263,7 @@ button.danger { color: var(--accent); border-color: var(--accent); background: t
 .cat-row .badge { margin-left: 0; flex-shrink: 0; }
 .ex-list { padding: 8px 12px 6px 24px; border-top: 1px solid var(--border); }
 .ex-empty { padding: 2px 0 8px; font-size: 13px; color: var(--muted); }
+
+/* click the category name to show / hide its exercises */
+.cat-name-toggle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 6px 0; border: none; border-radius: 6px; background: transparent; text-align: left; font-size: 14.5px; font-weight: 600; color: var(--fg); }
+.cat-name-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
