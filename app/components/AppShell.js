@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabaseClient";
 
 // The menu on the left. "Create User" is only shown to the owner.
 const LINKS = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/categories", label: "Create Category" },
   { href: "/exercises", label: "Add Exercise" },
   { href: "/log", label: "Workout History" },
