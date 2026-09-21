@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkProfile, profileMetadata } from "../../shared/profileFields";
 
 // This code runs on the server only. The secret key never goes to the browser.
 export const dynamic = "force-dynamic";
@@ -63,11 +64,20 @@ export async function POST(request) {
       return NextResponse.json({ error: "The password must be at least 6 characters." }, { status: 400 });
     }
 
+    // Every profile field is compulsory (checked here again, so it cannot be skipped).
+    // The server clock can be a day ahead of yours, so allow one extra day for the date check.
+    const latestDob = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const profileProblem = checkProfile(body.profile, latestDob);
+    if (profileProblem) {
+      return NextResponse.json({ error: profileProblem }, { status: 400 });
+    }
+
     // email_confirm: true means the person can sign in right away (no email is sent).
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      user_metadata: profileMetadata(body.profile)
     });
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
