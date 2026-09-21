@@ -250,3 +250,9 @@ button.danger { color: var(--accent); border-color: var(--accent); background: t
 .quick-row button { padding: 8px 18px; border-radius: 999px; }
 .quick-row button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
 .quick-row button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- category list (edit / delete) ---- */
+.cat-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; margin-bottom: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+.cat-row-name { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
+.cat-edit-input { flex: 1; min-width: 120px; }
+.cat-row-error { flex-basis: 100%; margin-top: 0; }
