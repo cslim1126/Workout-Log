@@ -199,3 +199,18 @@ button.side-link { width: 100%; text-align: left; background: transparent; borde
   margin-bottom: 12px; padding: 8px 12px; font-size: 13.5px; overflow-wrap: anywhere;
   border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg);
 }
+
+/* ---- user access management ---- */
+.toolbar { display: grid; grid-template-columns: 1fr 200px; gap: 10px; margin-bottom: 12px; }
+.user-row { padding: 10px 12px; margin-bottom: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+.user-name { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.user-meta { margin-top: 2px; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.user-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; margin-top: 10px; }
+.static-value { padding: 8px 10px; font-size: 14px; color: var(--muted); border: 1px dashed var(--border); border-radius: 8px; }
+button.danger { color: var(--accent); border-color: var(--accent); background: transparent; }
+.sql-box { margin: 10px 0; padding: 10px 12px; max-height: 220px; overflow: auto; font-size: 12px; line-height: 1.45; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; white-space: pre; }
+@media (max-width: 560px) {
+  .toolbar { grid-template-columns: 1fr; }
+  .user-controls { grid-template-columns: 1fr 1fr; }
+  .user-controls .danger { grid-column: 1 / -1; }
+}

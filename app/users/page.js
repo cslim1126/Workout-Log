@@ -7,10 +7,10 @@ import ProfileFields from "../components/ProfileFields";
 import { EMPTY_PROFILE, checkProfile } from "../shared/profileFields";
 
 export default function UsersPage() {
-  return <AppShell>{({ isOwner }) => <CreateUser isOwner={isOwner} />}</AppShell>;
+  return <AppShell>{({ canManage }) => <CreateUser canManage={canManage} />}</AppShell>;
 }
 
-function CreateUser({ isOwner }) {
+function CreateUser({ canManage }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [profile, setProfile] = useState(EMPTY_PROFILE);
@@ -18,11 +18,11 @@ function CreateUser({ isOwner }) {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (!isOwner) {
+  if (!canManage) {
     return (
       <div className="card">
         <h2>Create User</h2>
-        <div className="empty">Only the owner of this app can create users.</div>
+        <div className="empty">Only the owner and admins can create users.</div>
       </div>
     );
   }

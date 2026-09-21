@@ -5,19 +5,20 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-// The menu on the left. "Create User" is only shown to the owner.
+// The menu on the left. "Create User" and "User Access Management" are only shown to the owner and admins.
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/categories", label: "Create Category" },
   { href: "/exercises", label: "Add Exercise" },
   { href: "/log", label: "Workout History" },
-  { href: "/users", label: "Create User", ownerOnly: true },
+  { href: "/users", label: "Create User", adminOnly: true },
+  { href: "/access", label: "User Access Management", adminOnly: true },
   { href: "/profile", label: "Profile" }
 ];
 
-// Remember the owner check while moving between pages,
+// Remember the owner/admin check while moving between pages,
 // so the server is not asked again on every click.
-let ownerCache = null; // { userId, isOwner }
+let adminCache = null; // { userId, isOwner, canManage }
 
 const WIDE_SCREEN = "(min-width: 800px)";
 const MENU_KEY = "menuOpen";
@@ -31,6 +32,7 @@ export default function AppShell({ children }) {
   const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [canManage, setCanManage] = useState(false);
   const [ready, setReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -47,22 +49,27 @@ export default function AppShell({ children }) {
       }
       setUser(session.user);
 
-      if (ownerCache && ownerCache.userId === session.user.id) {
-        setIsOwner(ownerCache.isOwner);
+      if (adminCache && adminCache.userId === session.user.id) {
+        setIsOwner(adminCache.isOwner);
+        setCanManage(adminCache.canManage);
       } else {
         let owner = false;
+        let manage = false;
         try {
           const res = await fetch("/api/create-user", {
             headers: { Authorization: `Bearer ${session.access_token}` }
           });
           const json = await res.json();
           owner = Boolean(json.isOwner);
+          manage = Boolean(json.canManage);
         } catch (e) {
           owner = false;
+          manage = false;
         }
-        ownerCache = { userId: session.user.id, isOwner: owner };
+        adminCache = { userId: session.user.id, isOwner: owner, canManage: manage };
         if (!active) return;
         setIsOwner(owner);
+        setCanManage(manage);
       }
 
       // Big screen: menu is open unless you hid it before (we remember that).
@@ -109,7 +116,7 @@ export default function AppShell({ children }) {
   }
 
   async function handleSignOut() {
-    ownerCache = null;
+    adminCache = null;
     await supabase.auth.signOut();
     router.replace("/login");
   }
@@ -122,7 +129,7 @@ export default function AppShell({ children }) {
     );
   }
 
-  const links = LINKS.filter((l) => !l.ownerOnly || isOwner);
+  const links = LINKS.filter((l) => !l.adminOnly || canManage);
   const fullName = user && user.user_metadata ? user.user_metadata.full_name : "";
 
   return (
@@ -173,7 +180,7 @@ export default function AppShell({ children }) {
             </div>
           </div>
 
-          {typeof children === "function" ? children({ user, isOwner }) : children}
+          {typeof children === "function" ? children({ user, isOwner, canManage }) : children}
         </div>
       </div>
     </div>
