@@ -11,7 +11,8 @@ const LINKS = [
   { href: "/categories", label: "Create Category" },
   { href: "/exercises", label: "Add Exercise" },
   { href: "/log", label: "Workout History" },
-  { href: "/users", label: "Create User", ownerOnly: true }
+  { href: "/users", label: "Create User", ownerOnly: true },
+  { href: "/profile", label: "Profile" }
 ];
 
 // Remember the owner check while moving between pages,
@@ -122,6 +123,7 @@ export default function AppShell({ children }) {
   }
 
   const links = LINKS.filter((l) => !l.ownerOnly || isOwner);
+  const fullName = user && user.user_metadata ? user.user_metadata.full_name : "";
 
   return (
     <div className="shell">
@@ -166,7 +168,7 @@ export default function AppShell({ children }) {
               </button>
               <div>
                 <h1>🏋️ Workout Log</h1>
-                <div className="sub">{user?.email}</div>
+                <div className="sub">{fullName ? `${fullName} · ${user?.email}` : user?.email}</div>
               </div>
             </div>
           </div>
