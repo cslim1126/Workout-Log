@@ -187,9 +187,8 @@ function LogSet({ user }) {
 
         {noExercises && (
           <div className="notice">
-            Create a category and an exercise first. Use{" "}
-            <Link href="/categories">Create Category</Link> and{" "}
-            <Link href="/exercises">Add Exercise</Link> in the menu.
+            Create a category and an exercise first. Go to{" "}
+            <Link href="/exercises">Create Exercise</Link> in the menu.
           </div>
         )}
 

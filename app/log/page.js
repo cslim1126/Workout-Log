@@ -117,7 +117,7 @@ function WorkoutHistory() {
       const name = e.category_name || "No category";
       (byCategory[name] = byCategory[name] || []).push(e);
     }
-    const order = categories.map((c) => c.name); // same order as Create Category
+    const order = categories.map((c) => c.name); // same order as on the Create Exercise page
     const names = Object.keys(byCategory).sort((a, b) => {
       const ia = order.indexOf(a);
       const ib = order.indexOf(b);

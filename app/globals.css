@@ -256,3 +256,10 @@ button.danger { color: var(--accent); border-color: var(--accent); background: t
 .cat-row-name { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; overflow-wrap: anywhere; }
 .cat-edit-input { flex: 1; min-width: 120px; }
 .cat-row-error { flex-basis: 100%; margin-top: 0; }
+
+/* ---- one category with its exercises ---- */
+.cat-block { margin-bottom: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.cat-block > .cat-row { margin: 0; padding: 8px 12px; border: none; border-radius: 0; background: transparent; }
+.cat-row .badge { margin-left: 0; flex-shrink: 0; }
+.ex-list { padding: 8px 12px 6px 24px; border-top: 1px solid var(--border); }
+.ex-empty { padding: 2px 0 8px; font-size: 13px; color: var(--muted); }

@@ -8,8 +8,7 @@ import { supabase } from "../../lib/supabaseClient";
 // The menu on the left. "Create User" and "User Access Management" are only shown to the owner and admins.
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/categories", label: "Create Category" },
-  { href: "/exercises", label: "Add Exercise" },
+  { href: "/exercises", label: "Create Exercise" },
   { href: "/log-set", label: "Log a Set" },
   { href: "/log", label: "Workout History" },
   { href: "/users", label: "Create User", adminOnly: true },
