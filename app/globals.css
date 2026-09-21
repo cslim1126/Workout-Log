@@ -227,3 +227,26 @@ button.danger { color: var(--accent); border-color: var(--accent); background: t
 .set-no { min-width: 44px; font-weight: 700; color: var(--accent); }
 .set-remark { flex-basis: 100%; padding-left: 56px; color: var(--muted); font-style: italic; }
 .entry > div:first-child { flex: 1; min-width: 0; }
+
+/* ---- workout history: search by date + category sections ---- */
+.date-search { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+.cat-section { margin-bottom: 8px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.cat-toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: none; border-radius: 0; background: transparent; text-align: left; font-size: 15px; font-weight: 600; color: var(--fg); }
+.cat-toggle:hover { background: var(--input-bg); }
+.cat-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cat-toggle .badge { margin-left: auto; }
+.chev { width: 18px; height: 18px; flex-shrink: 0; color: var(--muted); }
+.chev.open { transform: rotate(90deg); }
+@media (prefers-reduced-motion: no-preference) { .chev { transition: transform .15s ease; } }
+.cat-body { padding: 8px 14px 6px; border-top: 1px solid var(--border); }
+.cat-body .entry { background: var(--bg); }
+@media (max-width: 560px) {
+  .date-search { grid-template-columns: 1fr 1fr; }
+  .date-search .clear { grid-column: 1 / -1; }
+}
+
+/* Today / Yesterday quick buttons */
+.quick-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.quick-row button { padding: 8px 18px; border-radius: 999px; }
+.quick-row button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.quick-row button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
