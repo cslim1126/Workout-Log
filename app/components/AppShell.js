@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/categories", label: "Create Category" },
   { href: "/exercises", label: "Add Exercise" },
+  { href: "/log-set", label: "Log a Set" },
   { href: "/log", label: "Workout History" },
   { href: "/users", label: "Create User", adminOnly: true },
   { href: "/access", label: "User Access Management", adminOnly: true },

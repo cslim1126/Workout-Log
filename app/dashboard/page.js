@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import AppShell from "../components/AppShell";
+import EntryBody from "../components/EntryBody";
+import { logVolume } from "../shared/sets";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTHS_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -197,7 +199,7 @@ function Dashboard() {
     for (const e of filtered) {
       const s = Number(e.sets) || 0;
       sets += s;
-      volume += (Number(e.weight) || 0) * s * (Number(e.reps) || 0);
+      volume += logVolume(e);
       days.add(e.log_date);
     }
     return { sets, volume, entries: filtered.length, days: days.size };
@@ -229,7 +231,7 @@ function Dashboard() {
         for (const e of items) {
           const s = Number(e.sets) || 0;
           sets += s;
-          volume += (Number(e.weight) || 0) * s * (Number(e.reps) || 0);
+          volume += logVolume(e);
         }
         return { date, items, sets, volume };
       });
@@ -406,16 +408,7 @@ function Dashboard() {
             {g.items.map((e) => (
               <div className="entry" key={e.id}>
                 <div>
-                  <div className="hl">
-                    <span>{e.sets} sets × {e.reps} reps</span>
-                    {e.weight ? <span>{e.weight} kg</span> : null}
-                  </div>
-                  <div className="name">
-                    {e.exercise_name}
-                    {e.category_name && <span className="badge">{e.category_name}</span>}
-                  </div>
-                  {e.rest ? <div className="meta">Rest {e.rest}s between sets</div> : null}
-                  {e.remark && <div className="remark">{e.remark}</div>}
+                  <EntryBody e={e} />
                 </div>
                 <div className="entry-time">{fmtTime(e.created_at)}</div>
               </div>

@@ -214,3 +214,16 @@ button.danger { color: var(--accent); border-color: var(--accent); background: t
   .user-controls { grid-template-columns: 1fr 1fr; }
   .user-controls .danger { grid-column: 1 / -1; }
 }
+
+/* ---- Log a Set (one box for every set) and the per-set lines ---- */
+.set-form-row { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.set-form-title { margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+.set-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px; }
+.set-fields .wide { grid-column: 1 / -1; }
+.setup-box { margin-bottom: 14px; }
+.set-lines { margin-top: 6px; }
+.set-line { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 5px 0; font-size: 13px; border-top: 1px dashed var(--border); }
+.set-line:first-child { border-top: none; }
+.set-no { min-width: 44px; font-weight: 700; color: var(--accent); }
+.set-remark { flex-basis: 100%; padding-left: 56px; color: var(--muted); font-style: italic; }
+.entry > div:first-child { flex: 1; min-width: 0; }
