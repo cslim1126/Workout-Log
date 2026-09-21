@@ -112,3 +112,46 @@ button.ghost { background: transparent; border-color: transparent; color: var(--
   background: var(--border); color: var(--muted); margin-left: 6px; vertical-align: middle;
 }
 ::placeholder { color: var(--muted); opacity: .7; }
+
+/* ---- left menu (can be hidden) ---- */
+.shell { display: flex; min-height: 100vh; }
+.main { flex: 1; min-width: 0; }
+.sidebar {
+  width: 230px; flex-shrink: 0;
+  position: sticky; top: 0; align-self: flex-start;
+  height: 100vh; overflow-y: auto;
+  padding: 20px 12px;
+  background: var(--card); border-right: 1px solid var(--border);
+}
+.sidebar { display: flex; flex-direction: column; }
+.sidebar .side-close { display: none; align-self: flex-start; margin-bottom: 8px; }
+.side-signout { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+button.side-link { width: 100%; text-align: left; background: transparent; border: none; cursor: pointer; font-family: inherit; }
+.side-link {
+  display: block; padding: 10px 12px; margin-bottom: 2px;
+  border-radius: 8px; font-size: 14px;
+  color: var(--muted); text-decoration: none;
+}
+.side-link:hover { color: var(--fg); background: var(--input-bg); }
+.side-link[aria-current="page"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.side-link:focus-visible,
+.menu-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.backdrop { display: none; }
+.topbar-left { display: flex; align-items: flex-start; gap: 12px; }
+.menu-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; margin-top: 3px; font-size: 13px; }
+.menu-toggle svg { width: 18px; height: 18px; }
+.menu-toggle { white-space: nowrap; }
+.success { font-size: 12.5px; color: var(--fg); margin-top: 8px; }
+
+/* On a phone the menu slides over the page instead of pushing it */
+@media (max-width: 799px) {
+  .sidebar {
+    position: fixed; z-index: 20; top: 0; left: 0; bottom: 0;
+    height: 100%; width: 250px;
+    box-shadow: 0 0 24px rgba(0,0,0,0.35);
+  }
+  .sidebar .side-close { display: inline-block; }
+  .menu-toggle-text { display: none; }
+  .topbar-left { gap: 10px; }
+  .backdrop { display: block; position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,0.4); }
+}
