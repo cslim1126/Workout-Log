@@ -11,7 +11,7 @@ export default function Home() {
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!active) return;
-      router.replace(data.session ? "/log" : "/login");
+      router.replace(data.session ? "/dashboard" : "/login");
     });
     return () => { active = false; };
   }, [router]);

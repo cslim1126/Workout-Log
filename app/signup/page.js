@@ -25,7 +25,7 @@ export default function SignupPage() {
       return;
     }
     if (data.session) {
-      router.replace("/log");
+      router.replace("/dashboard");
     } else {
       setNotice("Check your email to confirm your account, then sign in.");
     }
