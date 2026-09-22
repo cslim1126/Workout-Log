@@ -5,17 +5,22 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-// The menu on the left. Some items need a permission from the person's role.
-const LINKS = [
+// The menu on the left, in two parts.
+// The pages everyone uses are on top. The pages for managing people
+// are at the bottom, and each one needs a permission from the person's role.
+const TOP_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/exercises", label: "Create Exercise" },
   { href: "/log-set", label: "Log a Set" },
   { href: "/programs", label: "Programs" },
   { href: "/log", label: "Workout History" },
+  { href: "/profile", label: "Profile" }
+];
+
+const BOTTOM_LINKS = [
   { href: "/users", label: "Create User", needs: ["users.create"] },
   { href: "/access", label: "User Access Management", needs: ["users.create", "users.remove", "roles.manage", "groups.manage"] },
-  { href: "/roles", label: "Roles & Permissions", needs: ["roles.manage"] },
-  { href: "/profile", label: "Profile" }
+  { href: "/roles", label: "Roles & Permissions", needs: ["roles.manage"] }
 ];
 
 // Remember the owner/admin check while moving between pages,
@@ -132,7 +137,8 @@ export default function AppShell({ children }) {
   }
 
     const can = (key) => isOwner || permissions.includes(key);
-  const links = LINKS.filter((l) => !l.needs || l.needs.some(can));
+  const topLinks = TOP_LINKS.filter((l) => !l.needs || l.needs.some(can));
+  const bottomLinks = BOTTOM_LINKS.filter((l) => !l.needs || l.needs.some(can));
   const fullName = user && user.user_metadata ? user.user_metadata.full_name : "";
 
   return (
@@ -142,7 +148,7 @@ export default function AppShell({ children }) {
         <aside className="sidebar" id="app-menu">
           <button className="ghost side-close" onClick={() => setMenuOpen(false)}>✕ Close</button>
           <nav aria-label="Main menu">
-            {links.map((l) => (
+            {topLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
@@ -153,6 +159,21 @@ export default function AppShell({ children }) {
               </Link>
             ))}
           </nav>
+          {bottomLinks.length > 0 && (
+            <nav className="side-group" aria-label="Manage people">
+              <div className="side-group-title">Manage</div>
+              {bottomLinks.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="side-link"
+                  aria-current={pathname === l.href ? "page" : undefined}
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
+          )}
           <div className="side-signout">
             <button className="side-link" onClick={handleSignOut}>Sign out</button>
           </div>
