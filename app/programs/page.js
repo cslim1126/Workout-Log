@@ -9,12 +9,14 @@ import {
 } from "../shared/programs";
 
 export default function ProgramsPage() {
-  return <AppShell>{() => <Programs />}</AppShell>;
+  return <AppShell>{({ can }) => <Programs can={can} />}</AppShell>;
 }
 
 const blankDraft = () => ({ id: "", name: "", notes: "", shareScope: "private", groupId: "", items: [emptyItem(), emptyItem(), emptyItem()] });
 
-function Programs() {
+function Programs({ can }) {
+  const canWrite = can("programs.write");
+  const canShare = can("programs.share");
   const [data, setData] = useState(null); // { programs, groups, myGroupId, groupsReady }
   const [loadError, setLoadError] = useState("");
   const [setupNeeded, setSetupNeeded] = useState(false);
@@ -181,11 +183,12 @@ function Programs() {
             </div>
             <div className="field">
               <label htmlFor="pg-share">Who can see it</label>
-              <select id="pg-share" value={draft.shareScope} onChange={(e) => changeField("shareScope", e.target.value)}>
+              <select id="pg-share" value={draft.shareScope} onChange={(e) => changeField("shareScope", e.target.value)} disabled={!canShare}>
                 <option value="private">Only me</option>
-                <option value="group">My group</option>
-                <option value="everyone">Everyone</option>
+                {canShare && <option value="group">My group</option>}
+                {canShare && <option value="everyone">Everyone</option>}
               </select>
+              {!canShare && <div className="notice">Your role does not let you share programs.</div>}
             </div>
             {draft.shareScope === "group" && (
               <div className="field">
@@ -286,8 +289,8 @@ function Programs() {
             </div>
             <div className="row-actions" style={{ justifyContent: "flex-start", gap: 8 }}>
               <Link className="btn-link" href={`/log-set?program=${p.id}`}>Use this program</Link>
-              {p.mine && <button className="small" onClick={() => startEdit(p)}>Edit</button>}
-              {p.mine && <button className="danger small" onClick={() => deleteProgram(p)} disabled={busyId === p.id}>Delete</button>}
+              {p.mine && canWrite && <button className="small" onClick={() => startEdit(p)}>Edit</button>}
+              {p.mine && canWrite && <button className="danger small" onClick={() => deleteProgram(p)} disabled={busyId === p.id}>Delete</button>}
             </div>
           </div>
         )}
@@ -304,14 +307,18 @@ function Programs() {
         </div>
         {message && <div className="success" role="status">✓ {message}</div>}
         {loadError && <div className="error">{loadError}</div>}
-        <div className="row-actions">
-          <button className="primary" onClick={startNew}>Write a program</button>
-        </div>
+        {canWrite ? (
+          <div className="row-actions">
+            <button className="primary" onClick={startNew}>Write a program</button>
+          </div>
+        ) : (
+          <div className="notice">Your role does not let you write programs. You can still follow the ones shared with you.</div>
+        )}
       </div>
 
       <div className="card">
         <h2>My programs ({mine.length})</h2>
-        {mine.length === 0 && <div className="empty">You have not written a program yet.</div>}
+        {mine.length === 0 && <div className="empty">{canWrite ? "You have not written a program yet." : "You have no programs."}</div>}
         {mine.map(card)}
       </div>
 

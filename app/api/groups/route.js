@@ -1,4 +1,4 @@
-import { requireManager, json, ID_PATTERN, isSetupProblem, GROUPS_SETUP_MESSAGE } from "../../shared/serverAuth";
+import { requirePermission, json, ID_PATTERN, isSetupProblem, GROUPS_SETUP_MESSAGE } from "../../shared/serverAuth";
 
 // This code runs on the server only.
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ function saveError(error) {
 // Create a group
 export async function POST(request) {
   try {
-    const { admin, response } = await requireManager(request, "manage groups");
+    const { admin, response } = await requirePermission(request, "groups.manage", "manage groups");
     if (response) return response;
     const body = await request.json().catch(() => ({}));
     const name = cleanName(body.name);
@@ -38,7 +38,7 @@ export async function POST(request) {
 // Rename a group
 export async function PATCH(request) {
   try {
-    const { admin, response } = await requireManager(request, "manage groups");
+    const { admin, response } = await requirePermission(request, "groups.manage", "manage groups");
     if (response) return response;
     const body = await request.json().catch(() => ({}));
     const id = typeof body.id === "string" ? body.id : "";
@@ -59,7 +59,7 @@ export async function PATCH(request) {
 // Delete a group (the people in it just have no group any more)
 export async function DELETE(request) {
   try {
-    const { admin, response } = await requireManager(request, "manage groups");
+    const { admin, response } = await requirePermission(request, "groups.manage", "manage groups");
     if (response) return response;
     const body = await request.json().catch(() => ({}));
     const id = typeof body.id === "string" ? body.id : "";

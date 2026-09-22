@@ -1,8 +1,4 @@
-// Roles and group setup, shared by the pages and the server.
-
-// "owner" is not in this list: the owner is the person whose email is saved in ADMIN_EMAIL.
-export const ROLES = ["admin", "member"];
-export const ROLE_LABELS = { owner: "Owner", admin: "Admin", member: "Member" };
+// Groups: the two small tables that let you put people into groups.
 
 // Run this once in Supabase (SQL Editor -> New query -> paste -> Run).
 export const GROUPS_SQL = `create table if not exists public.user_groups (

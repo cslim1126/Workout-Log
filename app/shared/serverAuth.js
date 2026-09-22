@@ -1,6 +1,7 @@
 // Server-only helpers (never import this file from a page).
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { permissionsFor } from "./permissions";
 
 export const NOT_SET_UP =
   "The server is not set up for this yet. Add SUPABASE_SERVICE_ROLE_KEY and ADMIN_EMAIL in Vercel, then redeploy.";
@@ -23,32 +24,63 @@ export function isOwnerEmail(email) {
   return Boolean(owner) && Boolean(email) && email.toLowerCase() === owner;
 }
 
-// "owner" (email saved in ADMIN_EMAIL), "admin" (role given by the owner) or "member".
-// The role is kept in app_metadata, which a person cannot change for themselves.
-export function roleOf(user) {
-  if (isOwnerEmail(user.email)) return "owner";
-  return user.app_metadata && user.app_metadata.role === "admin" ? "admin" : "member";
+// The roles the owner has written, as { id: role }. Missing table = no roles yet.
+export async function loadRoles(admin) {
+  const { data, error } = await admin.from("user_roles").select("id, name, permissions").order("name", { ascending: true });
+  if (error) return { roles: [], byId: {}, ready: false, message: error.message || "" };
+  const roles = (data || []).map((r) => ({ id: r.id, name: r.name, permissions: Array.isArray(r.permissions) ? r.permissions : [] }));
+  const byId = {};
+  for (const r of roles) byId[r.id] = r;
+  return { roles, byId, ready: true, message: "" };
 }
 
-// Works out who is asking. Returns null if the token is missing or not valid.
+// Works out who is asking and what they may do.
+// Returns null if the token is missing or not valid.
 export async function getCaller(request, admin) {
   const header = request.headers.get("authorization") || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return null;
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data || !data.user || !data.user.email) return null;
-  const role = roleOf(data.user);
-  return { user: data.user, role, isOwner: role === "owner", canManage: role === "owner" || role === "admin" };
+  const user = data.user;
+  const isOwner = isOwnerEmail(user.email);
+  const { roles, byId, ready } = await loadRoles(admin);
+  const permissions = permissionsFor(user, byId, isOwner);
+  const meta = user.app_metadata || {};
+  const role = isOwner ? { id: "", name: "Owner" } : byId[meta.role_id] || null;
+  return {
+    user,
+    isOwner,
+    permissions,
+    role,
+    roles,
+    rolesById: byId,
+    rolesReady: ready,
+    can: (key) => isOwner || permissions.includes(key)
+  };
 }
 
-// For routes that only the owner and admins may use.
+// For routes that need one particular permission.
 // Returns { admin, caller } or { response } (an error to send back).
-export async function requireManager(request, who = "manage users") {
+export async function requirePermission(request, key, who = "do this") {
   const admin = getAdminClient();
   if (!admin) return { response: json({ error: NOT_SET_UP }, 500) };
   const caller = await getCaller(request, admin);
-  if (!caller || !caller.canManage) {
-    return { response: json({ error: `Only the owner and admins can ${who}.` }, 403) };
+  if (!caller) return { response: json({ error: "Please sign in again." }, 401) };
+  if (!caller.can(key)) {
+    return { response: json({ error: `You do not have permission to ${who}.` }, 403) };
+  }
+  return { admin, caller };
+}
+
+// For the User Access page: any one of several permissions is enough.
+export async function requireAnyPermission(request, keys, who = "manage users") {
+  const admin = getAdminClient();
+  if (!admin) return { response: json({ error: NOT_SET_UP }, 500) };
+  const caller = await getCaller(request, admin);
+  if (!caller) return { response: json({ error: "Please sign in again." }, 401) };
+  if (!keys.some((k) => caller.can(k))) {
+    return { response: json({ error: `You do not have permission to ${who}.` }, 403) };
   }
   return { admin, caller };
 }

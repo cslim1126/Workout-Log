@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "../components/AppShell";
 import { callApi } from "../shared/api";
-import { GROUPS_SQL, ROLE_LABELS } from "../shared/access";
+import { GROUPS_SQL } from "../shared/access";
+import Link from "next/link";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fmtDate(iso) {
@@ -14,10 +15,14 @@ function fmtDate(iso) {
 }
 
 export default function AccessPage() {
-  return <AppShell>{({ isOwner, canManage }) => <Access isOwner={isOwner} canManage={canManage} />}</AppShell>;
+  return <AppShell>{({ isOwner, can }) => <Access isOwner={isOwner} can={can} />}</AppShell>;
 }
 
-function Access({ isOwner, canManage }) {
+function Access({ isOwner, can }) {
+  const canManage = can("users.create") || can("users.remove") || can("roles.manage") || can("groups.manage");
+  const canRoles = can("roles.manage");
+  const canGroups = can("groups.manage");
+  const canRemove = can("users.remove");
   const [data, setData] = useState(null); // { me, users, groups, groupsReady, groupsMessage }
   const [loadError, setLoadError] = useState("");
   const [busy, setBusy] = useState(""); // id of the person or group being changed
@@ -63,7 +68,7 @@ function Access({ isOwner, canManage }) {
     return (
       <div className="card">
         <h2>User Access Management</h2>
-        <div className="empty">Only the owner and admins can manage users.</div>
+        <div className="empty">You do not have permission to manage users.</div>
       </div>
     );
   }
@@ -160,6 +165,7 @@ function Access({ isOwner, canManage }) {
 
   return (
     <>
+      {canGroups && (
       <div className="card">
         <h2>Groups</h2>
         {!data.groupsReady ? (
@@ -202,6 +208,7 @@ function Access({ isOwner, canManage }) {
           </>
         )}
       </div>
+      )}
 
       <div className="card">
         <h2>Users ({data.users.length})</h2>
@@ -219,9 +226,19 @@ function Access({ isOwner, canManage }) {
             {data.groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
           </select>
         </div>
-        {!isOwner && (
+        {!canRoles && (
           <div className="notice" style={{ marginTop: 0, marginBottom: 10 }}>
-            Only the owner can change roles or remove an admin.
+            You do not have permission to change roles.
+          </div>
+        )}
+        {canRoles && data.rolesReady === false && (
+          <div className="notice" style={{ marginTop: 0, marginBottom: 10 }}>
+            Roles are not set up yet. Open <Link href="/roles">Roles &amp; Permissions</Link> once to finish the setup.
+          </div>
+        )}
+        {canRoles && data.rolesReady && data.roles.length > 0 && (
+          <div className="notice" style={{ marginTop: 0, marginBottom: 10 }}>
+            Roles are made on the <Link href="/roles">Roles &amp; Permissions</Link> page.
           </div>
         )}
         {loadError && <div className="error" style={{ marginTop: 0, marginBottom: 10 }}>{loadError}</div>}
@@ -229,13 +246,13 @@ function Access({ isOwner, canManage }) {
 
         {visibleUsers.map((u) => {
           const isMe = u.id === meId;
-          const canRemove = !isMe && u.role !== "owner" && (isOwner || u.role !== "admin");
+          const mayRemove = canRemove && !isMe && !u.isOwner;
           const working = busy === u.id;
           return (
             <div className="user-row" key={u.id}>
               <div className="user-name">
                 {u.name || u.email}
-                <span className="badge">{ROLE_LABELS[u.role]}</span>
+                <span className="badge">{u.isOwner ? "Owner" : u.roleName || "No role"}</span>
                 {isMe && <span className="badge">You</span>}
               </div>
               <div className="user-meta">
@@ -244,17 +261,17 @@ function Access({ isOwner, canManage }) {
               <div className="user-controls">
                 <div className="field">
                   <label htmlFor={`role-${u.id}`}>Role</label>
-                  {u.role === "owner" ? (
+                  {u.isOwner ? (
                     <div className="static-value" id={`role-${u.id}`}>Owner</div>
                   ) : (
                     <select
                       id={`role-${u.id}`}
-                      value={u.role}
-                      disabled={!isOwner || working}
-                      onChange={(e) => changeUser(u.id, { role: e.target.value })}
+                      value={u.roleId || ""}
+                      disabled={!canRoles || !data.rolesReady || working}
+                      onChange={(e) => changeUser(u.id, { roleId: e.target.value || null })}
                     >
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
+                      <option value="">No role</option>
+                      {data.roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
                   )}
                 </div>
@@ -263,14 +280,14 @@ function Access({ isOwner, canManage }) {
                   <select
                     id={`group-${u.id}`}
                     value={u.groupId || ""}
-                    disabled={!data.groupsReady || working}
+                    disabled={!data.groupsReady || !canGroups || working}
                     onChange={(e) => changeUser(u.id, { groupId: e.target.value || null })}
                   >
                     <option value="">No group</option>
                     {data.groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                   </select>
                 </div>
-                {canRemove && (
+                {mayRemove && (
                   <button className="danger small" onClick={() => removeUser(u)} disabled={working}>Remove</button>
                 )}
               </div>

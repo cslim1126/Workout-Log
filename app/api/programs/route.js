@@ -69,7 +69,14 @@ export async function GET(request) {
     const g = await admin.from("user_groups").select("id, name").order("name", { ascending: true });
     if (!g.error) groups = g.data || [];
 
-    return json({ programs, groups, myGroupId: groupId, groupsReady: !g.error });
+    return json({
+      programs,
+      groups,
+      myGroupId: groupId,
+      groupsReady: !g.error,
+      canWrite: caller.can("programs.write"),
+      canShare: caller.can("programs.share")
+    });
   } catch (e) {
     return json({ error: "Something went wrong on the server." }, 500);
   }
@@ -80,11 +87,17 @@ export async function POST(request) {
   try {
     const { admin, caller, response } = await whoIsAsking(request);
     if (response) return response;
+    if (!caller.can("programs.write")) {
+      return json({ error: "You do not have permission to write programs." }, 403);
+    }
     const body = await request.json().catch(() => ({}));
     const problem = checkProgram(body);
     if (problem) return json({ error: problem }, 400);
 
     const row = programRow(body);
+    if (row.share_scope !== "private" && !caller.can("programs.share")) {
+      return json({ error: "You do not have permission to share programs." }, 403);
+    }
     if (row.share_scope === "group" && !ID_PATTERN.test(String(row.group_id || ""))) {
       return json({ error: "Please choose which group to share with." }, 400);
     }
@@ -125,6 +138,9 @@ export async function PATCH(request) {
     const problem = checkProgram(body);
     if (problem) return json({ error: problem }, 400);
     const row = programRow(body);
+    if (row.share_scope !== "private" && !caller.can("programs.share")) {
+      return json({ error: "You do not have permission to share programs." }, 403);
+    }
     if (row.share_scope === "group" && !ID_PATTERN.test(String(row.group_id || ""))) {
       return json({ error: "Please choose which group to share with." }, 400);
     }

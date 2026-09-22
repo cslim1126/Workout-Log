@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
 import AppShell from "../components/AppShell";
 import EntryBody from "../components/EntryBody";
+import { callApi } from "../shared/api";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -28,10 +29,10 @@ function fmtDate(d) {
 }
 
 export default function LogPage() {
-  return <AppShell>{() => <WorkoutHistory />}</AppShell>;
+  return <AppShell>{({ user, can }) => <WorkoutHistory me={user} canViewOthers={can("history.view")} />}</AppShell>;
 }
 
-function WorkoutHistory() {
+function WorkoutHistory({ me, canViewOthers }) {
   const [categories, setCategories] = useState([]);
   const [entries, setEntries] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -41,6 +42,8 @@ function WorkoutHistory() {
   const [to, setTo] = useState("");
   const [openMap, setOpenMap] = useState({}); // category name -> true/false, only what the person clicked
   const requestId = useRef(0);
+  const [people, setPeople] = useState([]); // only when allowed to see other people
+  const [personId, setPersonId] = useState("");
 
   // Search by date:
   //   From only  -> that one day
@@ -70,6 +73,20 @@ function WorkoutHistory() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!canViewOthers) return;
+    (async () => {
+      const res = await callApi("/api/history");
+      if (res.ok) setPeople(res.json.people || []);
+    })();
+  }, [canViewOthers]);
+
+  const viewingSomeoneElse = Boolean(personId) && personId !== (me && me.id);
+  const personName = (() => {
+    const p = people.find((x) => x.id === personId);
+    return p ? p.name || p.email : "";
+  })();
+
   async function loadEntries() {
     if (problem) {
       setEntries([]);
@@ -78,6 +95,21 @@ function WorkoutHistory() {
     }
     const myRequest = ++requestId.current;
     setLoading(true);
+
+    // Looking at someone else goes through the server, which checks the permission.
+    if (viewingSomeoneElse) {
+      const params = new URLSearchParams({ userId: personId });
+      if (start) params.set("from", start);
+      if (end) params.set("to", end);
+      const res = await callApi(`/api/history?${params.toString()}`);
+      if (myRequest !== requestId.current) return;
+      setError(res.ok ? "" : res.json.error || "Could not load that person's workouts.");
+      setEntries(res.ok ? res.json.entries || [] : []);
+      setLoaded(true);
+      setLoading(false);
+      return;
+    }
+
     let query = supabase.from("logs").select("*");
     if (start) query = query.gte("log_date", start);
     if (end) query = query.lte("log_date", end);
@@ -94,12 +126,12 @@ function WorkoutHistory() {
 
   useEffect(() => {
     loadEntries();
-  }, [start, end, problem]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [start, end, problem, personId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new search starts fresh: what you opened or closed before is forgotten
   useEffect(() => {
     setOpenMap({});
-  }, [start, end]);
+  }, [start, end, personId]);
 
   async function deleteEntry(e) {
     const ok = window.confirm(`Delete this ${e.exercise_name} entry (${fmtDay(e.log_date)})? This cannot be undone.`);
@@ -160,6 +192,24 @@ function WorkoutHistory() {
 
   return (
     <>
+      {canViewOthers && people.length > 0 && (
+        <div className="card">
+          <h2>Whose history</h2>
+          <div className="field" style={{ maxWidth: 320 }}>
+            <label htmlFor="hs-person">Person</label>
+            <select id="hs-person" value={personId} onChange={(e) => setPersonId(e.target.value)}>
+              <option value="">Me</option>
+              {people.filter((p) => !me || p.id !== me.id).map((p) => (
+                <option key={p.id} value={p.id}>{p.name || p.email}</option>
+              ))}
+            </select>
+          </div>
+          {viewingSomeoneElse && (
+            <div className="notice">You are reading {personName}&apos;s workouts. You cannot change or delete them.</div>
+          )}
+        </div>
+      )}
+
       <div className="card">
         <h2>Search by date</h2>
         <div className="quick-row" role="group" aria-label="Quick search">
@@ -185,11 +235,15 @@ function WorkoutHistory() {
       </div>
 
       <div className="card">
-        <h2>Workout History</h2>
+        <h2>{viewingSomeoneElse ? `${personName}'s Workout History` : "Workout History"}</h2>
         {error && <div className="error" style={{ marginTop: 0, marginBottom: 10 }}>{error}</div>}
         {loaded && !loading && !problem && sections.length === 0 && (
           <div className="empty">
-            {filterActive ? "No workouts found for these dates." : <>No entries yet. <Link href="/log-set">Log a Set</Link></>}
+            {filterActive
+              ? "No workouts found for these dates."
+              : viewingSomeoneElse
+                ? "This person has not logged any workouts yet."
+                : <>No entries yet. <Link href="/log-set">Log a Set</Link></>}
           </div>
         )}
         {sections.length > 0 && !filterActive && (
@@ -223,7 +277,9 @@ function WorkoutHistory() {
                           <div>
                             <EntryBody e={e} />
                           </div>
-                          <button className="ghost" onClick={() => deleteEntry(e)} title="Delete" aria-label={`Delete ${e.exercise_name}`}>✕</button>
+                          {!viewingSomeoneElse && (
+                            <button className="ghost" onClick={() => deleteEntry(e)} title="Delete" aria-label={`Delete ${e.exercise_name}`}>✕</button>
+                          )}
                         </div>
                       ))}
                     </div>

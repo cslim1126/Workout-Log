@@ -5,21 +5,22 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-// The menu on the left. "Create User" and "User Access Management" are only shown to the owner and admins.
+// The menu on the left. Some items need a permission from the person's role.
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/exercises", label: "Create Exercise" },
   { href: "/log-set", label: "Log a Set" },
   { href: "/programs", label: "Programs" },
   { href: "/log", label: "Workout History" },
-  { href: "/users", label: "Create User", adminOnly: true },
-  { href: "/access", label: "User Access Management", adminOnly: true },
+  { href: "/users", label: "Create User", needs: ["users.create"] },
+  { href: "/access", label: "User Access Management", needs: ["users.create", "users.remove", "roles.manage", "groups.manage"] },
+  { href: "/roles", label: "Roles & Permissions", needs: ["roles.manage"] },
   { href: "/profile", label: "Profile" }
 ];
 
 // Remember the owner/admin check while moving between pages,
 // so the server is not asked again on every click.
-let adminCache = null; // { userId, isOwner, canManage }
+let adminCache = null; // { userId, isOwner, permissions }
 
 const WIDE_SCREEN = "(min-width: 800px)";
 const MENU_KEY = "menuOpen";
@@ -33,7 +34,7 @@ export default function AppShell({ children }) {
   const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
-  const [canManage, setCanManage] = useState(false);
+  const [permissions, setPermissions] = useState([]);
   const [ready, setReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -52,25 +53,25 @@ export default function AppShell({ children }) {
 
       if (adminCache && adminCache.userId === session.user.id) {
         setIsOwner(adminCache.isOwner);
-        setCanManage(adminCache.canManage);
+        setPermissions(adminCache.permissions);
       } else {
         let owner = false;
-        let manage = false;
+        let perms = [];
         try {
           const res = await fetch("/api/create-user", {
             headers: { Authorization: `Bearer ${session.access_token}` }
           });
           const json = await res.json();
           owner = Boolean(json.isOwner);
-          manage = Boolean(json.canManage);
+          perms = Array.isArray(json.permissions) ? json.permissions : [];
         } catch (e) {
           owner = false;
-          manage = false;
+          perms = [];
         }
-        adminCache = { userId: session.user.id, isOwner: owner, canManage: manage };
+        adminCache = { userId: session.user.id, isOwner: owner, permissions: perms };
         if (!active) return;
         setIsOwner(owner);
-        setCanManage(manage);
+        setPermissions(perms);
       }
 
       // Big screen: menu is open unless you hid it before (we remember that).
@@ -130,7 +131,8 @@ export default function AppShell({ children }) {
     );
   }
 
-  const links = LINKS.filter((l) => !l.adminOnly || canManage);
+    const can = (key) => isOwner || permissions.includes(key);
+  const links = LINKS.filter((l) => !l.needs || l.needs.some(can));
   const fullName = user && user.user_metadata ? user.user_metadata.full_name : "";
 
   return (
@@ -181,7 +183,7 @@ export default function AppShell({ children }) {
             </div>
           </div>
 
-          {typeof children === "function" ? children({ user, isOwner, canManage }) : children}
+          {typeof children === "function" ? children({ user, isOwner, permissions, can }) : children}
         </div>
       </div>
     </div>
