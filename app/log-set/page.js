@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import AppShell from "../components/AppShell";
+import { callApi } from "../shared/api";
+import { firstNumber, targetLine } from "../shared/programs";
 import { MAX_SETS, SET_DETAILS_SQL, emptySet, resizeSets, checkSets, logRowFromDetails } from "../shared/sets";
 
 // Dates use your own time zone (not UTC), so "today" is correct early in the morning.
@@ -14,7 +17,12 @@ function todayStr() {
 }
 
 export default function LogSetPage() {
-  return <AppShell>{({ user }) => <LogSet user={user} />}</AppShell>;
+  // useSearchParams (for ?program=...) must sit inside Suspense in Next.js
+  return (
+    <Suspense fallback={<div className="wrap"><p className="sub">Loading…</p></div>}>
+      <AppShell>{({ user }) => <LogSet user={user} />}</AppShell>
+    </Suspense>
+  );
 }
 
 function LogSet({ user }) {
@@ -31,6 +39,13 @@ function LogSet({ user }) {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Following a program
+  const searchParams = useSearchParams();
+  const wantedProgram = searchParams ? searchParams.get("program") : null;
+  const [programs, setPrograms] = useState([]);
+  const [programId, setProgramId] = useState("");
+  const [itemIndex, setItemIndex] = useState("");
+
   useEffect(() => {
     (async () => {
       const [cats, exs] = await Promise.all([
@@ -46,7 +61,48 @@ function LogSet({ user }) {
       const probe = await supabase.from("logs").select("set_details").limit(1);
       if (probe.error && /set_details/i.test(probe.error.message || "")) setNeedsSetup(true);
     })();
+
+    (async () => {
+      const res = await callApi("/api/programs");
+      if (res.ok) setPrograms(res.json.programs || []);
+    })();
   }, []);
+
+  const program = useMemo(() => programs.find((p) => p.id === programId) || null, [programs, programId]);
+  const item = program && itemIndex !== "" ? program.items[Number(itemIndex)] || null : null;
+
+  // Picking an exercise from the program fills the boxes with the plan.
+  function applyItem(prog, value) {
+    setItemIndex(value);
+    setSuccess("");
+    setError("");
+    const it = prog ? prog.items[Number(value)] : null;
+    if (!it) return;
+    const n = Math.min(Math.max(Number(it.sets) || 0, 1), MAX_SETS);
+    const reps = firstNumber(it.reps);
+    const rest = firstNumber(it.rest);
+    setSetsInput(String(n));
+    setRows(Array.from({ length: n }, () => ({ ...emptySet(), reps, rest })));
+  }
+
+  const chooseItem = (value) => applyItem(program, value);
+
+  // Opened from the Programs page with ?program=...
+  useEffect(() => {
+    if (!wantedProgram || programId) return;
+    const found = programs.find((p) => p.id === wantedProgram);
+    if (!found) return;
+    setProgramId(found.id);
+    if (found.items.length) applyItem(found, "0");
+  }, [wantedProgram, programs, programId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function chooseProgram(value) {
+    setProgramId(value);
+    setItemIndex("");
+    setSuccess("");
+    setError("");
+  }
+
 
   // keep the category box valid once categories load
   useEffect(() => {
@@ -98,7 +154,8 @@ function LogSet({ user }) {
     e.preventDefault();
     setError("");
     setSuccess("");
-    if (!logCategory || !logExercise) return setError("Please choose a category and an exercise.");
+    if (program && !item) return setError("Please choose an exercise from the program.");
+    if (!program && (!logCategory || !logExercise)) return setError("Please choose a category and an exercise.");
     if (!logDate) return setError("Please choose a date.");
     if (!showN) return setError(`Please enter how many sets (1 to ${MAX_SETS}).`);
     const checked = checkSets(rows.slice(0, showN));
@@ -107,8 +164,8 @@ function LogSet({ user }) {
     setSubmitting(true);
     const { error: err } = await supabase.from("logs").insert({
       user_id: user.id,
-      category_name: logCategory,
-      exercise_name: logExercise,
+      category_name: program ? (item.category || program.name) : logCategory,
+      exercise_name: program ? item.exercise : logExercise,
       log_date: logDate,
       ...logRowFromDetails(checked.details)
     });
@@ -119,7 +176,7 @@ function LogSet({ user }) {
       return;
     }
     setRows(resizeSets([], showN)); // empty boxes, same number of sets
-    setSuccess(`Saved ${showN} ${showN === 1 ? "set" : "sets"} of ${logExercise}.`);
+    setSuccess(`Saved ${showN} ${showN === 1 ? "set" : "sets"} of ${program ? item.exercise : logExercise}.`);
   }
 
   async function copySql() {
@@ -131,7 +188,7 @@ function LogSet({ user }) {
     }
   }
 
-  const noExercises = !categories.length || !exercisesInCategory.length;
+  const noExercises = !program && (!categories.length || !exercisesInCategory.length);
 
   return (
     <div className="card">
@@ -148,7 +205,39 @@ function LogSet({ user }) {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
+        {programs.length > 0 && (
+          <div className="grid">
+            <div className="field">
+              <label htmlFor="ls-program">Program (optional)</label>
+              <select id="ls-program" value={programId} onChange={(e) => chooseProgram(e.target.value)}>
+                <option value="">Not following a program</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}{p.mine ? "" : ` (from ${p.ownerName || "another user"})`}</option>
+                ))}
+              </select>
+            </div>
+            {program && (
+              <div className="field">
+                <label htmlFor="ls-program-item">Exercise from the program</label>
+                <select id="ls-program-item" value={itemIndex} onChange={(e) => chooseItem(e.target.value)}>
+                  <option value="">Choose an exercise…</option>
+                  {program.items.map((it, i) => <option key={i} value={String(i)}>{it.exercise}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {item && (
+          <div className="target-line">
+            <b>Target</b> · {targetLine(item)}
+            {item.notes ? ` · ${item.notes}` : ""}
+            <div className="notice" style={{ marginTop: 4 }}>Fill in below what you actually did.</div>
+          </div>
+        )}
+
         <div className="grid">
+          {!program && (<>
           <div className="field">
             <label htmlFor="ls-category">Category</label>
             <select id="ls-category" value={logCategory} onChange={(e) => setLogCategory(e.target.value)} disabled={!categories.length}>
@@ -165,6 +254,7 @@ function LogSet({ user }) {
                 : exercisesInCategory.map((e) => <option key={e.id} value={e.name}>{e.name}</option>)}
             </select>
           </div>
+          </>)}
           <div className="field">
             <label htmlFor="ls-date">Date</label>
             <input id="ls-date" type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} />
