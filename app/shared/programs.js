@@ -28,7 +28,7 @@ alter table public.workout_programs enable row level security;
 grant all on public.workout_programs to service_role;`;
 
 export function emptyItem() {
-  return { category: "", exercise: "", sets: "", reps: "", rest: "", rir: "", notes: "" };
+  return { category: "", exercise: "", sets: "", reps: "", weight: "", rest: "", rir: "", notes: "" };
 }
 
 const text = (v) => (v === null || v === undefined ? "" : String(v).trim().replace(/\s+/g, " "));
@@ -40,6 +40,7 @@ export function cleanItem(raw) {
     exercise: text(r.exercise),
     sets: text(r.sets),
     reps: text(r.reps),
+    weight: text(r.weight),
     rest: text(r.rest),
     rir: text(r.rir),
     notes: text(r.notes)
@@ -57,7 +58,7 @@ export function checkProgram(raw) {
   if (!SHARE_SCOPES.includes(scope)) return "Please choose who can see this program.";
 
   const items = Array.isArray(raw && raw.items) ? raw.items.map(cleanItem) : [];
-  const filled = items.filter((i) => i.exercise || i.sets || i.reps || i.rest || i.rir || i.notes || i.category);
+  const filled = items.filter((i) => i.exercise || i.sets || i.reps || i.weight || i.rest || i.rir || i.notes || i.category);
   if (filled.length === 0) return "Please add at least one exercise.";
   if (filled.length > MAX_ITEMS) return `A program can have ${MAX_ITEMS} exercises at most.`;
 
@@ -73,6 +74,7 @@ export function checkProgram(raw) {
     }
     if (!it.reps) return `${where}: please enter the reps.`;
     if (it.reps.length > 20) return `${where}: the reps are too long (20 characters at most).`;
+    if (it.weight.length > 20) return `${where}: the weight is too long (20 characters at most).`;
     if (it.rest.length > 20) return `${where}: the rest is too long (20 characters at most).`;
     if (it.rir.length > 10) return `${where}: the RIR is too long (10 characters at most).`;
     if (it.notes.length > 200) return `${where}: the notes are too long (200 characters at most).`;
@@ -89,7 +91,7 @@ export function programRow(raw) {
     share_scope: text(raw.shareScope) || "private",
     group_id: raw.groupId || null,
     items: items
-      .filter((i) => i.exercise || i.sets || i.reps || i.rest || i.rir || i.notes || i.category)
+      .filter((i) => i.exercise || i.sets || i.reps || i.weight || i.rest || i.rir || i.notes || i.category)
       .map((i) => ({ ...i, sets: Number(i.sets) }))
   };
 }
@@ -101,10 +103,11 @@ export function firstNumber(value) {
   return m ? m[1] : "";
 }
 
-// "Target: 4 sets × 12 reps · rest 90s · RIR 2"
+// "Target: 4 sets × 12 reps · 60 kg · rest 90s · RIR 2"
 export function targetLine(item) {
   if (!item) return "";
   const bits = [`${item.sets} ${Number(item.sets) === 1 ? "set" : "sets"} × ${item.reps} reps`];
+  if (item.weight) bits.push(`${item.weight} kg`);
   if (item.rest) bits.push(`rest ${item.rest}`);
   if (item.rir) bits.push(`RIR ${item.rir}`);
   return bits.join(" · ");

@@ -81,8 +81,9 @@ function LogSet({ user }) {
     const n = Math.min(Math.max(Number(it.sets) || 0, 1), MAX_SETS);
     const reps = firstNumber(it.reps);
     const rest = firstNumber(it.rest);
+    const weight = firstNumber(it.weight);
     setSetsInput(String(n));
-    setRows(Array.from({ length: n }, () => ({ ...emptySet(), reps, rest })));
+    setRows(Array.from({ length: n }, () => ({ ...emptySet(), reps, rest, weight })));
   }
 
   const chooseItem = (value) => applyItem(program, value);

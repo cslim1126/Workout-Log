@@ -204,7 +204,7 @@ function Programs({ can }) {
           <h3 style={{ marginTop: 18 }}>Exercises</h3>
           <div className="prog-table" role="table">
             <div className="prog-head" role="row">
-              <span>Exercise</span><span>Sets</span><span>Reps</span><span>Rest</span><span>RIR</span><span>Notes</span><span />
+              <span>Exercise</span><span>Sets</span><span>Reps</span><span>Weight</span><span>Rest</span><span>RIR</span><span>Notes</span><span />
             </div>
             {draft.items.map((it, i) => (
               <div className="prog-row" role="row" key={i}>
@@ -219,6 +219,10 @@ function Programs({ can }) {
                 <label className="prog-cell">
                   <span className="mini-label">Reps</span>
                   <input aria-label={`Row ${i + 1} reps`} type="text" maxLength={20} placeholder="12" value={it.reps} onChange={(e) => changeItem(i, "reps", e.target.value)} />
+                </label>
+                <label className="prog-cell">
+                  <span className="mini-label">Weight (kg)</span>
+                  <input aria-label={`Row ${i + 1} weight`} type="text" maxLength={20} placeholder="60" value={it.weight} onChange={(e) => changeItem(i, "weight", e.target.value)} />
                 </label>
                 <label className="prog-cell">
                   <span className="mini-label">Rest</span>
@@ -274,13 +278,14 @@ function Programs({ can }) {
           <div className="prog-body">
             <div className="prog-table read">
               <div className="prog-head" role="row">
-                <span>Exercise</span><span>Sets</span><span>Reps</span><span>Rest</span><span>RIR</span><span>Notes</span>
+                <span>Exercise</span><span>Sets</span><span>Reps</span><span>Weight</span><span>Rest</span><span>RIR</span><span>Notes</span>
               </div>
               {p.items.map((it, i) => (
                 <div className="prog-row read" role="row" key={i}>
                   <span data-label="Exercise">{it.exercise}</span>
                   <span data-label="Sets">{it.sets}</span>
                   <span data-label="Reps">{it.reps}</span>
+                  <span data-label="Weight">{it.weight || "—"}</span>
                   <span data-label="Rest">{it.rest || "—"}</span>
                   <span data-label="RIR">{it.rir || "—"}</span>
                   <span data-label="Notes">{it.notes || "—"}</span>
@@ -303,7 +308,7 @@ function Programs({ can }) {
       <div className="card">
         <h2>Workout Programs</h2>
         <div className="notice" style={{ marginTop: 0 }}>
-          Write a plan (exercise, sets, reps, rest, RIR) and share it. People who follow it key in what they actually did.
+          Write a plan (exercise, sets, reps, weight, rest, RIR) and share it. People who follow it key in what they actually did.
         </div>
         {message && <div className="success" role="status">✓ {message}</div>}
         {loadError && <div className="error">{loadError}</div>}
